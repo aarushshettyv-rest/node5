@@ -1,0 +1,8 @@
+node_modules/
+n5_modules/
+.npm/
+*.log
+coverage/
+.DS_Store
+Thumbs.db
+.vscode/

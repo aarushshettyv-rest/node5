@@ -1,0 +1,21 @@
+{
+  "name": "node5",
+  "version": "1.0.0",
+  "description": "HTML-first runtime",
+  "main": "node5.js",
+  "bin": {
+    "node5": "./node5.js",
+    "n5pm": "./n5pm.js",
+    "n5px": "./n5px.js"
+  },
+  "scripts": {
+    "start": "node node5.js index.html",
+    "test": "node tests/smoke.js"
+  },
+  "author": "Aarush",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "commander": "^15.0.0",
+    "playwright": "^1.63.0"
+  }
+}
