@@ -47,9 +47,9 @@ if (program.args[0] === 'run') {
 
 const options = program.opts();
 const target = program.args[0] || 'index.html';
-const port = Number(options.port);
-if (!Number.isInteger(port) || port < 1 || port > 65535) {
-  reportError('port must be an integer between 1 and 65535');
+let port = Number(options.port);
+if (!Number.isInteger(port) || port < 0 || port > 65535) {
+  reportError('port must be an integer between 0 and 65535');
   process.exit(1);
 }
 const targetPath = path.resolve(target);
@@ -78,6 +78,7 @@ const compressibleTypes = new Set([
   'image/svg+xml'
 ]);
 const etagCache = new Map();
+const gzipCache = new Map();
 const securityHeaders = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer'
@@ -197,6 +198,17 @@ const server = http.createServer((req, res) => {
 
         if (req.method === 'GET' && compressibleTypes.has(contentType)
           && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+          const cachedGzip = gzipCache.get(etag);
+          if (cachedGzip) {
+            res.writeHead(200, {
+              ...securityHeaders,
+              ...headers,
+              'Content-Encoding': 'gzip',
+              'Content-Length': cachedGzip.length
+            });
+            res.end(cachedGzip);
+            return;
+          }
           zlib.gzip(data, (gzipErr, compressed) => {
             if (gzipErr) {
               reportError(gzipErr.message);
@@ -210,6 +222,10 @@ const server = http.createServer((req, res) => {
               'Content-Encoding': 'gzip',
               'Content-Length': compressed.length
             });
+            gzipCache.set(etag, compressed);
+            if (gzipCache.size > 128) {
+              gzipCache.delete(gzipCache.keys().next().value);
+            }
             res.end(compressed);
           });
           return;
@@ -222,11 +238,12 @@ const server = http.createServer((req, res) => {
   });
 });
 
-const url = `http://localhost:${port}`;
+let url;
 const serverReady = new Promise((resolve, reject) => {
   server.once('error', reject);
   server.listen(port, () => {
     server.removeListener('error', reject);
+    port = server.address().port;
     resolve();
   });
 });
@@ -239,6 +256,7 @@ process.on('SIGINT', () => {
 (async () => {
   try {
     await serverReady;
+    url = `http://localhost:${port}`;
     console.log(`Serving ${target} at ${url}`);
 
     if (options.render) {

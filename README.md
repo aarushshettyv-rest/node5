@@ -80,6 +80,8 @@ Useful options:
 --port <number>          Select the HTTP port
 ```
 
+Use `--port 0` to let the operating system choose an available port.
+
 The server also supports ETags, `Last-Modified`, gzip for text responses, `GET`/`HEAD`, cache headers, and protection against path traversal and symlink escapes.
 
 ## Install packages

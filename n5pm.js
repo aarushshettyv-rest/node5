@@ -111,7 +111,7 @@ function installPackages(packages, options) {
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`npm install failed with exit code ${code ?? 1}`));
+      else reject(new Error(`Bun install failed with exit code ${code ?? 1}`));
     });
   });
 }
