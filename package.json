@@ -11,7 +11,7 @@
   "scripts": {
     "start": "bun node5.js index.html",
     "test": "bun tests/smoke.js",
-    "build:exe": "node build-exe.js"
+    "build:exe": "bun build-exe.js"
   },
   "author": "Aarush",
   "license": "Apache-2.0",

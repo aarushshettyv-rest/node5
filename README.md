@@ -140,17 +140,15 @@ node --check n5pm.js
 node --check n5px.js
 ```
 
-Build a Windows executable launcher with Node SEA:
+Build a standalone Windows executable with Bun:
 
 ```powershell
 npm run build:exe
 dist\node5.exe .\site --port 8080
 ```
 
-The executable uses the Node engine and launches `node5.js` from the current
-directory. It improves distribution and launcher convenience, but it does not
-make JavaScript execution faster than Node itself. Set `NODE5_NODE` if Node is
-not available on `PATH`.
+The executable embeds the Bun runtime and the Node.5 application. It can run
+without Node installed and uses Bun's runtime speed.
 
 ## Troubleshooting
 

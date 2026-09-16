@@ -1,14 +1,12 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
 const rootDir = __dirname;
 const distDir = path.join(rootDir, 'dist');
-const blobPath = path.join(rootDir, 'node5-sea.blob');
-const nodeExecutable = process.execPath;
+const bunExecutable = process.execPath;
 const outputPath = path.join(distDir, process.platform === 'win32' ? 'node5.exe' : 'node5');
-const seaFuse = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2';
 const red = '\x1b[31m';
 const reset = '\x1b[0m';
 
@@ -19,8 +17,8 @@ function reportError(message) {
     : output);
 }
 
-if (process.platform !== 'win32') {
-  reportError('this build command currently targets Windows');
+if (process.platform !== 'win32' || process.versions.bun === undefined) {
+  reportError('Bun on Windows is required for this executable build');
   process.exit(1);
 }
 
@@ -33,16 +31,17 @@ function run(command, args) {
 
 try {
   fs.mkdirSync(distDir, { recursive: true });
-  for (const runtimeFile of ['node5.js', 'n5px.js', 'package.json']) {
-    fs.copyFileSync(path.join(rootDir, runtimeFile), path.join(distDir, runtimeFile));
-  }
-  run(nodeExecutable, ['--experimental-sea-config', 'sea-config.json']);
-  fs.copyFileSync(nodeExecutable, outputPath);
-  run(process.env.ComSpec || 'cmd.exe', ['/d', '/c', 'npx', '--yes', 'postject', outputPath, 'NODE_SEA_BLOB', blobPath, '--sentinel-fuse', seaFuse]);
-  fs.rmSync(blobPath, { force: true });
+  run(bunExecutable, [
+    'build',
+    '--compile',
+    '--target=bun-windows-x64',
+    '--compile-autoload-package-json',
+    '--outfile',
+    outputPath,
+    path.join(rootDir, 'node5.js')
+  ]);
   console.log(`node5: built ${path.relative(rootDir, outputPath)}`);
 } catch (error) {
-  fs.rmSync(blobPath, { force: true });
   reportError(error.message);
   process.exit(1);
 }

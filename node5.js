@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const brand = 'node5';
 const red = '\x1b[31m';
 const reset = '\x1b[0m';
+const loadPlaywright = () => eval('require')('playwright');
 
 function reportError(message) {
   const cleanMessage = message.replace(/^error:\s*/i, '');
@@ -275,7 +276,7 @@ process.on('SIGINT', () => {
     }
 
     if (options.pdf || options.screenshot) {
-      const { chromium } = require('playwright');
+      const { chromium } = loadPlaywright();
       const browser = await chromium.launch();
       const page = await browser.newPage();
       await page.goto(url);
