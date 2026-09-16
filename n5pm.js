@@ -1,7 +1,8 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 const { program } = require('commander');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { spawn } = require('child_process');
 
 const brand = 'n5pm';
@@ -20,6 +21,14 @@ function elapsedSeconds(startTime) {
 function reportError(message) {
   const cleanMessage = message.replace(/^error:\s*/i, '');
   console.error(redError(cleanMessage));
+}
+
+function reportInstallerLine(line) {
+  if (/\b(error|failed|not found|err[_: ])/i.test(line)) {
+    console.error(redError(line));
+  } else {
+    console.error(line);
+  }
 }
 
 function loadPkgJson() {
@@ -44,22 +53,47 @@ function isInstalled(spec) {
   return fs.existsSync(path.join('node_modules', name, 'package.json'));
 }
 
+function findBun() {
+  const bunInstall = process.env.BUN_INSTALL || path.join(os.homedir(), '.bun');
+  const bunExecutable = process.platform === 'win32' ? 'bun.exe' : 'bun';
+  const installedPath = path.join(bunInstall, 'bin', bunExecutable);
+  if (fs.existsSync(installedPath)) return installedPath;
+  const pathEntries = (process.env.Path || process.env.PATH || '').split(path.delimiter);
+  return pathEntries.some((entry) => fs.existsSync(path.join(entry, bunExecutable)))
+    ? bunExecutable
+    : null;
+}
+
+function ensureProjectManifest() {
+  const manifestPath = path.join(process.cwd(), 'package.json');
+  if (fs.existsSync(manifestPath)) return;
+
+  const projectName = path.basename(process.cwd())
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'node5-project';
+  fs.writeFileSync(manifestPath, `${JSON.stringify({
+    name: projectName,
+    version: '1.0.0',
+    private: true
+  }, null, 2)}\n`);
+}
+
 function installPackages(packages, options) {
   return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? (process.env.ComSpec || 'cmd.exe') : 'npm';
-    const cacheMode = options.offline ? '--offline' : '--prefer-offline';
-    const npmArgs = [
-      'install',
-      '--save',
-      '--no-audit',
-      '--no-fund',
-      cacheMode,
-      ...(options.ignoreScripts ? ['--ignore-scripts'] : []),
-      ...packages
-    ];
-    const child = spawn(npm, process.platform === 'win32'
-      ? ['/d', '/c', 'npm.cmd', ...npmArgs]
-      : npmArgs, { stdio: ['inherit', 'inherit', 'pipe'] });
+    const bunPath = findBun();
+    if (!bunPath) {
+      reject(new Error('Bun is required. Install it from https://bun.sh'));
+      return;
+    }
+    ensureProjectManifest();
+    const args = ['add', ...(options.offline ? ['--offline'] : []), ...(options.ignoreScripts ? ['--ignore-scripts'] : []), ...packages];
+    const child = spawn(bunPath, args, {
+      cwd: process.cwd(),
+      stdio: ['inherit', 'inherit', 'pipe']
+    });
+
+    console.log(`${brand}: using Bun native installer`);
 
     let errorBuffer = '';
     child.stderr.on('data', (chunk) => {
@@ -67,11 +101,11 @@ function installPackages(packages, options) {
       const lines = errorBuffer.split(/\r?\n/);
       errorBuffer = lines.pop();
       for (const line of lines) {
-        if (line) console.error(redError(line));
+        if (line) reportInstallerLine(line);
       }
     });
     child.stderr.on('end', () => {
-      if (errorBuffer) console.error(redError(errorBuffer));
+      if (errorBuffer) reportInstallerLine(errorBuffer);
     });
 
     child.on('error', reject);

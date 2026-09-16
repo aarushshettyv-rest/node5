@@ -8,8 +8,7 @@ Node.5 is an HTML-first Node.js toolkit for serving sites, running local package
 
 ## Requirements
 
-- Node.js 18 or newer on Windows, macOS, or Linux
-- npm, included with Node.js
+- Bun 1.4 or newer on Windows, macOS, or Linux
 - Playwright browsers only for `--pdf` and `--screenshot`
 
 The core commands are cross-platform. Browser rendering uses the operating system's default opener: `start` on Windows, `open` on macOS, and `xdg-open` on Linux.
@@ -95,7 +94,7 @@ n5pm install express --ignore-scripts
 n5pm list
 ```
 
-`n5pm` delegates dependency resolution to npm, updates `package.json`, and uses npm's lockfile and cache. Use `--ignore-scripts` for packages that do not need lifecycle setup. Some packages, including Electron, may require install scripts.
+`n5pm` uses Bun's native installer and updates `package.json` and Bun's lockfile. Use `--ignore-scripts` for packages that do not need lifecycle setup. Some packages, including Electron, may require install scripts.
 
 `--offline` uses only packages already available in the local npm cache. It fails instead of contacting the registry when required data is missing.
 
@@ -167,7 +166,7 @@ n5pm install <package>
 
 ## Status
 
-Node.5 is experimental. Static serving and local command execution are the most mature paths. Package installation currently delegates dependency resolution to npm, so Node.5 is not yet a replacement for Bun, Node.js, or Deno.
+Node.5 is experimental and requires Bun. Static serving, local command execution, and Bun-native package installation are the most mature paths.
 
 ## License
 

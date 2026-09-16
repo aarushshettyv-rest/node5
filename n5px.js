@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -8,6 +8,11 @@ const args = process.argv.slice(2);
 const version = require('./package.json').version;
 const red = '\x1b[31m';
 const reset = '\x1b[0m';
+
+if (process.versions.bun === undefined) {
+  console.error(`${brand} error: Bun is required. Run this command with 'bun n5px.js ...'`);
+  process.exit(1);
+}
 
 function reportError(message) {
   const output = `${brand} error: ${message}`;
@@ -70,10 +75,12 @@ if (!commandPath) {
   process.exit(1);
 }
 
-const isWindowsScript = process.platform === 'win32' && /\.(cmd|bat)$/i.test(commandPath);
-if (!fs.existsSync(localScript) || !fs.statSync(localScript).isFile()) {
-  executable = isWindowsScript ? (process.env.ComSpec || 'cmd.exe') : commandPath;
-  executableArgs = isWindowsScript ? ['/d', '/c', commandPath, ...args] : args;
+const isLocalScript = fs.existsSync(localScript) && fs.statSync(localScript).isFile();
+if (!isLocalScript) {
+  executable = process.execPath;
+  executableArgs = ['x', '--no-install', command, ...args];
+} else {
+  executableArgs = [localScript, ...args];
 }
 const child = spawn(executable, executableArgs, { stdio: 'inherit' });
 

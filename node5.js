@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 const { program } = require('commander');
 const http = require('http');
 const fs = require('fs');

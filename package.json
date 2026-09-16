@@ -9,12 +9,15 @@
     "n5px": "./n5px.js"
   },
   "scripts": {
-    "start": "node node5.js index.html",
-    "test": "node tests/smoke.js",
+    "start": "bun node5.js index.html",
+    "test": "bun tests/smoke.js",
     "build:exe": "node build-exe.js"
   },
   "author": "Aarush",
   "license": "Apache-2.0",
+  "engines": {
+    "bun": ">=1.4.0"
+  },
   "dependencies": {
     "commander": "^15.0.0",
     "cowsay": "^1.6.0",
