@@ -1,0 +1,5 @@
+{
+  "main": "sea-entry.js",
+  "output": "node5-sea.blob",
+  "disableExperimentalSEAWarning": true
+}

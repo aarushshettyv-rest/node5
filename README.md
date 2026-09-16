@@ -139,6 +139,18 @@ node --check n5pm.js
 node --check n5px.js
 ```
 
+Build a Windows executable launcher with Node SEA:
+
+```powershell
+npm run build:exe
+dist\node5.exe .\site --port 8080
+```
+
+The executable uses the Node engine and launches `node5.js` from the current
+directory. It improves distribution and launcher convenience, but it does not
+make JavaScript execution faster than Node itself. Set `NODE5_NODE` if Node is
+not available on `PATH`.
+
 ## Troubleshooting
 
 If a globally linked command is not found after `npm link`, open a new terminal so the updated npm bin directory is available on `PATH`. On Windows, try the generated command shim directly:

@@ -5,10 +5,21 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const brand = 'n5pm';
+const red = '\x1b[31m';
+const reset = '\x1b[0m';
+
+function redError(message) {
+  const output = `${brand} error: ${message}`;
+  return process.stderr.isTTY && !process.env.NO_COLOR ? `${red}${output}${reset}` : output;
+}
+
+function elapsedSeconds(startTime) {
+  return (Number(process.hrtime.bigint() - startTime) / 1e9).toFixed(2);
+}
 
 function reportError(message) {
   const cleanMessage = message.replace(/^error:\s*/i, '');
-  console.error(`${brand} error: ${cleanMessage}`);
+  console.error(redError(cleanMessage));
 }
 
 function loadPkgJson() {
@@ -35,9 +46,9 @@ function isInstalled(spec) {
 
 function installPackages(packages, options) {
   return new Promise((resolve, reject) => {
-    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const npm = process.platform === 'win32' ? (process.env.ComSpec || 'cmd.exe') : 'npm';
     const cacheMode = options.offline ? '--offline' : '--prefer-offline';
-    const child = spawn(npm, [
+    const npmArgs = [
       'install',
       '--save',
       '--no-audit',
@@ -45,7 +56,23 @@ function installPackages(packages, options) {
       cacheMode,
       ...(options.ignoreScripts ? ['--ignore-scripts'] : []),
       ...packages
-    ], { stdio: 'inherit' });
+    ];
+    const child = spawn(npm, process.platform === 'win32'
+      ? ['/d', '/c', 'npm.cmd', ...npmArgs]
+      : npmArgs, { stdio: ['inherit', 'inherit', 'pipe'] });
+
+    let errorBuffer = '';
+    child.stderr.on('data', (chunk) => {
+      errorBuffer += chunk.toString();
+      const lines = errorBuffer.split(/\r?\n/);
+      errorBuffer = lines.pop();
+      for (const line of lines) {
+        if (line) console.error(redError(line));
+      }
+    });
+    child.stderr.on('end', () => {
+      if (errorBuffer) console.error(redError(errorBuffer));
+    });
 
     child.on('error', reject);
     child.on('close', (code) => {
@@ -65,6 +92,7 @@ program
   .option('--offline', 'Use only the local npm cache')
   .option('--ignore-scripts', 'Skip package install scripts')
   .action(async (packages, options) => {
+    const startTime = process.hrtime.bigint();
     const packageStates = packages.map((spec) => ({ spec, installed: isInstalled(spec) }));
     const pendingPackages = packageStates.filter(({ installed }) => !installed).map(({ spec }) => spec);
     const installedPackages = packageStates.filter(({ installed }) => installed).map(({ spec }) => spec);
@@ -72,10 +100,17 @@ program
       console.log(`${brand}: already installed ${installedPackages.join(', ')}`);
     }
     if (pendingPackages.length === 0) {
+      console.log(`${brand}: completed in ${elapsedSeconds(startTime)} seconds`);
       return;
     }
     console.log(`${brand}: installing ${pendingPackages.join(', ')}`);
-    await installPackages(pendingPackages, options);
+    try {
+      await installPackages(pendingPackages, options);
+    } catch (error) {
+      error.message += ` (${elapsedSeconds(startTime)} seconds elapsed)`;
+      throw error;
+    }
+    console.log(`${brand}: completed in ${elapsedSeconds(startTime)} seconds`);
     console.log(`${brand}: packages installed`);
   });
 

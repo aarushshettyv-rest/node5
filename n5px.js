@@ -6,9 +6,14 @@ const { spawn } = require('child_process');
 const brand = 'n5px';
 const args = process.argv.slice(2);
 const version = require('./package.json').version;
+const red = '\x1b[31m';
+const reset = '\x1b[0m';
 
 function reportError(message) {
-  console.error(`${brand} error: ${message}`);
+  const output = `${brand} error: ${message}`;
+  console.error(process.stderr.isTTY && !process.env.NO_COLOR
+    ? `${red}${output}${reset}`
+    : output);
 }
 
 if (args[0] === '--help' || args[0] === '-h') {
@@ -34,7 +39,7 @@ const binDirectories = [
   path.resolve('n5_modules', '.bin')
 ];
 const commandCandidates = process.platform === 'win32'
-  ? [command, `${command}.cmd`, `${command}.exe`, `${command}.bat`]
+  ? [`${command}.cmd`, `${command}.exe`, `${command}.bat`, command]
   : [command];
 
 let commandPath;

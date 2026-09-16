@@ -7,10 +7,15 @@ const { spawn, spawnSync } = require('child_process');
 const zlib = require('zlib');
 const crypto = require('crypto');
 const brand = 'node5';
+const red = '\x1b[31m';
+const reset = '\x1b[0m';
 
 function reportError(message) {
   const cleanMessage = message.replace(/^error:\s*/i, '');
-  console.error(`${brand} error: ${cleanMessage}`);
+  const output = `${brand} error: ${cleanMessage}`;
+  console.error(process.stderr.isTTY && !process.env.NO_COLOR
+    ? `${red}${output}${reset}`
+    : output);
 }
 
 // Define CLI options
@@ -18,7 +23,7 @@ program
   .name('node5')
   .version(require('./package.json').version)
   .description('HTML-first runtime with rendering')
-  .argument('<file>', 'HTML file to serve')
+  .argument('[file]', 'HTML file or folder to serve', 'index.html')
   .option('--render', 'Open in default browser')
   .option('--port <number>', 'Port to serve on', '3000')
   .option('--pdf <output>', 'Export to PDF using Playwright')
@@ -106,6 +111,11 @@ const server = http.createServer((req, res) => {
   let requestedPath;
   try {
     const requestUrl = new URL(req.url, `http://localhost:${port}`);
+    if (!isDirectoryTarget && requestUrl.pathname !== '/') {
+      res.writeHead(404, { ...securityHeaders, 'Content-Type': 'text/plain' });
+      res.end('File not found');
+      return;
+    }
     requestedPath = requestUrl.pathname === '/'
       ? entryPath
       : path.resolve(rootDir, `.${decodeURIComponent(requestUrl.pathname)}`);
